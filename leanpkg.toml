@@ -1,0 +1,7 @@
+[package]
+name = "relevance_filter"
+version = "0.1"
+lean_version = "master"
+
+[dependencies]
+mathlib = {git = "https://github.com/leanprover/mathlib", rev = "5bb145efc1d505d5a5514ec9747275453862c5d1"}
