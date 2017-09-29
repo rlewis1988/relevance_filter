@@ -1,4 +1,4 @@
--- this will only run on the hacked lean: https://github.com/rlewis1988/lean/float
+-- this will only run on the hacked lean: https://github.com/rlewis1988/lean/floats
 
 meta constant float : Type
 meta constant float.to_string : float → string
@@ -27,3 +27,4 @@ open float
 #eval pi*(10 - pi)
 #eval float.lt (log pi) pi
 #eval (90 : float)
+#eval ([1, 2, 3, 4, 5] : list float).map log

@@ -43,6 +43,7 @@ import _target.deps.mathlib.data.pfun
 import _target.deps.mathlib.data.pnat
 import _target.deps.mathlib.data.prod
 import _target.deps.mathlib.data.rat
+-- there's some name clash here?
 /-import _target.deps.mathlib.data.seq.computation
 import _target.deps.mathlib.data.seq.parallel
 import _target.deps.mathlib.data.seq.seq
@@ -97,64 +98,34 @@ import _target.deps.mathlib.topology.uniform_space
 
 open tactic
 
-#check fin
-
-meta def rb_set.of_list {α : Type} [has_ordering α] : list α → rb_set α
-| [] := mk_rb_set
-| (h::t) := (rb_set.of_list t).insert h
-
-
+-- builds the set of the names of all constants appearing in the expression e
 meta def collect_consts (e : expr) : name_set :=
 e.fold mk_name_set (λ e' _ l, if e'.is_constant then l.insert e'.const_name else l)
 
+-- map takes names to lists of nats.
+-- adds idx to map[n] for each n in refs
+meta def update_const_map (map : rb_lmap name ℕ) (idx : ℕ) (refs : name_set) : rb_lmap name ℕ :=
+refs.fold map (λ nm map', map'.insert nm idx)
 
-/-#print declaration
-meta def get_all_decls' : tactic (Σ n : ℕ, array (name×expr) n) :=
+-- produces an array containing the name, definition, and set of referenced constants for each declaration in the environment,
+-- and a map taking every constant name to the list of indices of expressions that contain it
+meta def get_all_decls : tactic (Σ n : ℕ, array (name×expr×name_set) n × rb_lmap name ℕ) :=
 do env ← get_env,
    return $ env.fold
-    ⟨0, @array.nil (name×expr)⟩ 
-    (λ dcl (nat_arr : Σ n : ℕ, array (name × expr) n),
+    ⟨_, (@array.nil (name×expr×name_set), mk_rb_map)⟩ 
+    (λ dcl nat_arr,
+        let consts := collect_consts dcl.value in
         match nat_arr with 
-        | ⟨n, arr⟩ := ⟨n+1, arr.push_back (dcl.to_name, dcl.value)⟩ 
-        end)-/
-
-meta def get_all_decls : tactic (Σ n : ℕ, array (name×expr×name_set) n) :=
-do env ← get_env,
-   return $ env.fold
-    ⟨_, @array.nil (name×expr×name_set)⟩ 
-    (λ dcl (nat_arr : Σ n : ℕ, array (name × expr × name_set) n),
-        match nat_arr with 
-        | ⟨_, arr⟩ := ⟨_, arr.push_back (dcl.to_name, dcl.value, collect_consts dcl.value)⟩ 
+        | ⟨n, (arr, map)⟩ := ⟨_, (arr.push_back (dcl.to_name, dcl.value, consts), update_const_map map (n+1) consts)⟩ 
         end)
 
-constant float : Type
-constant float.to_string : float → string
-constant float.add : float → float → float
-constant float.sub : float → float → float
-constant float.mul : float → float → float
-constant float.lt : float → float → bool
-constant float.log : float → float
-constant float.pi : float
-constant float.float_of_int : int → float
-
-noncomputable instance : has_add float := ⟨float.add⟩
-noncomputable instance : has_sub float := ⟨float.sub⟩
-noncomputable instance : has_mul float := ⟨float.mul⟩
-noncomputable instance : has_lt float := ⟨λ x y, if float.lt x y then true else false⟩
-noncomputable instance : has_zero float := ⟨float.float_of_int 0⟩
-noncomputable instance : has_one float := ⟨float.float_of_int 1⟩
-
-open float
-
-#eval float.to_string $ float.pi + float.pi
-#eval float.to_string $ float.pi - float.pi - float.pi
-#eval float.lt (log pi) pi
-
-#eval float.to_string $ (90 : float)
-
+-- the command below takes ~10 seconds to run
 #exit
 
 run_cmd
-do arr ← get_all_decls, 
-   trace arr.fst
+do ⟨n, (arr, map)⟩ ← get_all_decls,
+   trace "number of declarations in environment:", 
+   trace n,
+   trace "number of declarations whose proof contains the constant `nat`:",
+   trace (map.find `nat).length
 
