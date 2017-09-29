@@ -121,12 +121,38 @@ do env ← get_env,
 meta def get_all_decls : tactic (Σ n : ℕ, array (name×expr×name_set) n) :=
 do env ← get_env,
    return $ env.fold
-    ⟨0, @array.nil (name×expr×name_set)⟩ 
+    ⟨_, @array.nil (name×expr×name_set)⟩ 
     (λ dcl (nat_arr : Σ n : ℕ, array (name × expr × name_set) n),
         match nat_arr with 
-        | ⟨n, arr⟩ := ⟨n+1, arr.push_back (dcl.to_name, dcl.value, collect_consts dcl.value)⟩ 
+        | ⟨_, arr⟩ := ⟨_, arr.push_back (dcl.to_name, dcl.value, collect_consts dcl.value)⟩ 
         end)
 
+constant float : Type
+constant float.to_string : float → string
+constant float.add : float → float → float
+constant float.sub : float → float → float
+constant float.mul : float → float → float
+constant float.lt : float → float → bool
+constant float.log : float → float
+constant float.pi : float
+constant float.float_of_int : int → float
+
+noncomputable instance : has_add float := ⟨float.add⟩
+noncomputable instance : has_sub float := ⟨float.sub⟩
+noncomputable instance : has_mul float := ⟨float.mul⟩
+noncomputable instance : has_lt float := ⟨λ x y, if float.lt x y then true else false⟩
+noncomputable instance : has_zero float := ⟨float.float_of_int 0⟩
+noncomputable instance : has_one float := ⟨float.float_of_int 1⟩
+
+open float
+
+#eval float.to_string $ float.pi + float.pi
+#eval float.to_string $ float.pi - float.pi - float.pi
+#eval float.lt (log pi) pi
+
+#eval float.to_string $ (90 : float)
+
+#exit
 
 run_cmd
 do arr ← get_all_decls, 
