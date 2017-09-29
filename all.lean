@@ -105,8 +105,8 @@ e.fold mk_name_set
   | _ := l
   end)
 
--- map takes names to lists of nats.
--- adds idx to map[n] for each n in refs
+/-- map takes names to lists of nats.
+ adds idx to map[n] for each n in refs -/
 meta def update_const_map (map : rb_lmap name ℕ) (idx : ℕ) (refs : name_set) : rb_lmap name ℕ :=
 refs.fold map (λ nm map', map'.insert nm idx)
 
@@ -115,15 +115,17 @@ meta def declaration.is_defined : declaration → bool
 | (declaration.thm _ _ _ _) := tt
 | _ := ff
 
-meta def update_array_set_pair (dcl_name : name) (dcl_value : expr) : (Σ n : ℕ, array (name×expr×name_set) n × rb_lmap name ℕ) → (Σ n : ℕ, array (name×expr×name_set) n × rb_lmap name ℕ) 
+meta def update_array_set_pair (dcl_name : name) (dcl_value : expr) : 
+     (Σ n : ℕ, array (name × expr × name_set) n × rb_lmap name ℕ) → (Σ n : ℕ, array (name × expr × name_set) n × rb_lmap name ℕ) 
 | ⟨n, (arr, map)⟩ := 
    let consts := collect_consts dcl_value in
    ⟨_, (arr.push_back (dcl_name, dcl_value, consts), update_const_map map n consts)⟩ 
 
--- produces an array containing the name, definition, and set of referenced constants for each declaration in the environment,
--- and a map taking every constant name to the list of indices of expressions that contain it
--- 11 sec
-meta def get_all_decls : tactic (Σ n : ℕ, array (name×expr×name_set) n × rb_lmap name ℕ) :=
+
+/-- produces an array containing the name, definition, and set of referenced constants for each 
+ non-meta, non-axiom declaration in the environment,
+ and a map taking every constant name to the list of indices of expressions that contain it. -/
+meta def get_all_decls : tactic (Σ n : ℕ, array (name × expr × name_set) n × rb_lmap name ℕ) :=
 do env ← get_env,
    return $ env.fold
     ⟨_, (array.nil, mk_rb_map)⟩ 
@@ -136,9 +138,12 @@ do env ← get_env,
 
 
 
--- the command below takes ~6 seconds to run
 
 meta instance : inhabited name_set := ⟨mk_name_set⟩
+
+-- the command below takes ~6 seconds to run
+
+#exit
 
 set_option profiler true
 
