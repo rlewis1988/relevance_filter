@@ -1,4 +1,3 @@
-
 import _target.deps.mathlib.algebra.big_operators
 import _target.deps.mathlib.algebra.field
 import _target.deps.mathlib.algebra.functions
@@ -100,7 +99,11 @@ open tactic
 
 -- builds the set of the names of all constants appearing in the expression e
 meta def collect_consts (e : expr) : name_set :=
-e.fold mk_name_set (λ e' _ l, if e'.is_constant then l.insert e'.const_name else l)
+e.fold mk_name_set 
+  (λ e' _ l, match e' with
+  | expr.const nm _ := l.insert nm 
+  | _ := l
+  end)
 
 -- map takes names to lists of nats.
 -- adds idx to map[n] for each n in refs
@@ -109,18 +112,22 @@ refs.fold map (λ nm map', map'.insert nm idx)
 
 -- produces an array containing the name, definition, and set of referenced constants for each declaration in the environment,
 -- and a map taking every constant name to the list of indices of expressions that contain it
+-- 11 sec
 meta def get_all_decls : tactic (Σ n : ℕ, array (name×expr×name_set) n × rb_lmap name ℕ) :=
 do env ← get_env,
    return $ env.fold
-    ⟨_, (@array.nil (name×expr×name_set), mk_rb_map)⟩ 
+    ⟨_, (array.nil, mk_rb_map)⟩ 
     (λ dcl nat_arr,
         let consts := collect_consts dcl.value in
         match nat_arr with 
         | ⟨n, (arr, map)⟩ := ⟨_, (arr.push_back (dcl.to_name, dcl.value, consts), update_const_map map (n+1) consts)⟩ 
         end)
 
+
 -- the command below takes ~10 seconds to run
 #exit
+
+set_option profiler true
 
 run_cmd
 do ⟨n, (arr, map)⟩ ← get_all_decls,

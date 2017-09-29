@@ -21,10 +21,18 @@ meta instance : has_to_string float := ⟨float.to_string⟩
 meta instance : has_repr float := ⟨float.to_string⟩
 
 
-open float
+open float array 
+
+
+set_option unifier.nat_offset_cnstr_threshold 50000
 
 #eval pi + pi
 #eval pi*(10 - pi)
 #eval float.lt (log pi) pi
 #eval (90 : float)
 #eval ([1, 2, 3, 4, 5] : list float).map log
+
+meta def a := mk_array 10000 (2 : float)
+meta def b  := a.read 500
+ 
+
