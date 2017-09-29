@@ -33,6 +33,6 @@ set_option unifier.nat_offset_cnstr_threshold 50000
 #eval ([1, 2, 3, 4, 5] : list float).map log
 
 meta def a := mk_array 10000 (2 : float)
-meta def b  := a.read 500
+--meta def b  := a.read 500
  
-
+#eval a.read 1
