@@ -37,9 +37,9 @@ import _target.deps.mathlib.data.nat.prime
 import _target.deps.mathlib.data.nat.pairing
 import _target.deps.mathlib.data.pnat
 import _target.deps.mathlib.data.encodable
-import _target.deps.mathlib.data.num.lemmas
-import _target.deps.mathlib.data.num.basic
-import _target.deps.mathlib.data.num.bitwise
+--import _target.deps.mathlib.data.num.lemmas
+--import _target.deps.mathlib.data.num.basic
+--import _target.deps.mathlib.data.num.bitwise
 import _target.deps.mathlib.data.array.lemmas
 import _target.deps.mathlib.data.prod
 import _target.deps.mathlib.data.fp.basic
@@ -99,8 +99,8 @@ import _target.deps.mathlib.order.default
 import _target.deps.mathlib.order.filter
 import _target.deps.mathlib.order.fixed_points
 import _target.deps.mathlib.order.complete_lattice
-import float sort util
-
+import data.vector
+import float sort util -- name clash: see https://github.com/leanprover/lean/issues/1841
 
 
 
@@ -172,19 +172,6 @@ meta def feature_distance (f1 f2 : name_set) : float :=
 let common := f1.inter f2 in
 (common.to_list.map (λ n, float.pow (feature_weight features_map n) 6)).sum
 
-/-meta def common_features (n1 n2 : name) : name_set := 
-(features_map.find' n1).inter (features_map.find' n2)
-
-meta def name_distance (n1 n2 : name) : float :=
-let cf := common_features features_map n1 n2 in
-(cf.to_list.map (feature_weight features_map)).sum
-
-meta def name_distance_ordering_from (root : name) : has_ordering name :=
-⟨λ n1 n2,
- let n1d := name_distance features_map n1 root,
-     n2d := name_distance features_map n2 root in
- if n1d < n2d then ordering.lt else if n1d > n2d then ordering.gt else ordering.eq⟩-/
-
 meta def name_distance (contents_map : rb_map name (name_set×name_set)) (n1 n2 : name) : float :=
 let f1 := (contents_map.find' n1).1,
     f2 := (contents_map.find' n2).2 in
@@ -203,11 +190,12 @@ a.foldl [] (λ nm l, if lt nm (l.head) then [nm] else if lt l.head nm then l els
 
 meta def nearest_k (features : name_set) (contents_map : rb_map name (name_set × name_set))
      (features_map : rb_map name name_set) {n} (names : array name n) (k : ℕ) : list (name × float) :=
-let sorted := partial_quicksort
-      (λ n1 n2, name_feature_distance features_map contents_map n2 features < name_feature_distance features_map contents_map n1 features)
-       names k,
+let arr_val_pr : array (name × float) n := ⟨λ i, let v := names.read i in (v, name_feature_distance features_map contents_map v features)⟩, 
+    sorted := partial_quicksort
+      (λ n1 n2 : name × float, float.lt n2.2 n1.2)
+       arr_val_pr k,
     name_list := if h : k ≤ n then (sorted.take k h).to_list else sorted.to_list in
-name_list.map (λ n, (n, name_feature_distance features_map contents_map n features))
+name_list
 
 meta def nearest_k_of_expr (e : expr) (contents_map : rb_map name (name_set × name_set))
      (features_map : rb_map name name_set) {n} (names : array name n) (k : ℕ) : list (name × float) :=
@@ -217,19 +205,27 @@ meta def nearest_k_of_name (nm : name) (contents_map : rb_map name (name_set × 
      (features_map : rb_map name name_set) {n} (names : array name n) (k : ℕ) : list (name × float) :=
 let features := (contents_map.find' nm).1 in nearest_k features contents_map features_map names k
 
+def find_val_in_list {α β} [decidable_eq α] [inhabited β] (a : α) : list (α × β) → β 
+| [] := default β
+| ((a', b)::t) := if a = a' then b else find_val_in_list t
 
 meta def relevance_to_feature (goal : name_set) (feature : name) (contents_map : rb_map name (name_set × name_set))
      (nearest : list (name × float)) : float :=
-let nearest_map := rb_map.of_list nearest in
-((27 : float) / 10)*((nearest.filter (λ b : name × float, (contents_map.find' b.1).2.contains feature)).map (λ nm_flt : name × float, nm_flt.2 / (float.float_of_int (contents_map.find' nm_flt.1).2.size))).sum + nearest_map.find' feature
+let --nearest_map := rb_map.of_list nearest,
+    contains_feature := nearest.filter (λ b : name × float, (contents_map.find' b.1).2.contains feature),
+    weighted_vals := (contains_feature.map
+     (λ nm_flt : name × float, nm_flt.2 / (float.float_of_int (contents_map.find' nm_flt.1).2.size))) in
+((27 : float) / 10)*weighted_vals.sum + find_val_in_list feature nearest  --nearest_map.find' feature
 
 
+-- TODO: the k in nearest_k shouldn't be the same as the argument k
 meta def find_k_most_relevant_facts_to_goal (goal : name_set)  (contents_map : rb_map name (name_set × name_set))
      (features_map : rb_map name name_set) {n} (names : array name n) (k : ℕ) : list (name × float) :=
 let nearest := nearest_k goal contents_map features_map names k,
-    relevant := partial_quicksort (λ n1 n2, relevance_to_feature goal n2 contents_map nearest < relevance_to_feature goal n1 contents_map nearest) names k,
+    name_val_prs : array (name × float) n := ⟨λ i, let v := names.read i in (v, relevance_to_feature goal v contents_map nearest)⟩,
+    relevant := partial_quicksort (λ n1 n2 : name × float, float.lt n2.2 n1.2) name_val_prs k,
     name_list := if h : k ≤ n then (relevant.take k h).to_list else relevant.to_list in
-name_list.map (λ n, (n, relevance_to_feature goal n contents_map nearest))
+name_list
 
 
 meta def find_k_most_relevant_facts_to_expr (goal : expr)  (contents_map : rb_map name (name_set × name_set))
@@ -239,7 +235,7 @@ find_k_most_relevant_facts_to_goal features contents_map features_map names k
 
 set_option profiler true
 -- the commands below are slow
-
+#exit
 run_cmd
 do (contents, features, ⟨n, names⟩) ← get_all_decls,
    trace n,

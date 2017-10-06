@@ -11,15 +11,17 @@ local infix `<` := op
 variable  [has_to_format α]
 
 meta def swap {n : ℕ} (A : array α n) (i j : ℕ) : array α n :=
-let tmp_j := A.read' j in
-(A.write' j (A.read' (i))).write' (i) tmp_j 
+let tmp_j := A.read' j,
+    tmp_i := A.read' i in
+(A.write' j tmp_i).write' i tmp_j 
 
 meta def partition_aux (hi : ℕ) (pivot : α) {n : ℕ} : Π (A : array α n) (i j : ℕ), ℕ × array α n
 | A i j :=
 if j = hi then (i, A) else
 let tmp_j := A.read' j in
 if tmp_j < pivot then
-  let A' := (A.write' j (A.read' i)).write' i tmp_j in
+  let tmp_i := A.read' i,
+      A' := (A.write' j tmp_i).write' i tmp_j in
   partition_aux A' (i+1) (j+1)
 else
   partition_aux A i (j+1) 
@@ -74,4 +76,3 @@ meta def merge_sort {α : Type} [decidable_linear_order α] [inhabited α] [has_
   unchecked_cast $ merge lhs rhs
 
 end mergesort
-
