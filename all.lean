@@ -239,7 +239,7 @@ find_k_most_relevant_facts_to_goal features contents_map features_map names k
 
 set_option profiler true
 -- the commands below are slow
-#exit
+
 run_cmd
 do (contents, features, ⟨n, names⟩) ← get_all_decls,
    trace n,
