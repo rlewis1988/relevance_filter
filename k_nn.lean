@@ -71,8 +71,8 @@ let common := f1.inter f2 in
 (common.to_list.map (λ n, float.pow (feature_weight features_map n) 6)).sum
 
 meta def name_distance (contents_map : rb_map name (name_set×name_set)) (n1 n2 : name) : float :=
-let f1 := (contents_map.find' n1).2,
-    f2 := (contents_map.find' n2).2 in
+let f1 := (contents_map.find' n1).1,
+    f2 := (contents_map.find' n2).1 in
 feature_distance features_map f1 f2
 
 meta def name_feature_distance (contents_map : rb_map name (name_set×name_set)) (n1 : name) (f2 : name_set) : float :=
