@@ -8,14 +8,12 @@ all updates are destructive. I don't know why my array quicksort takes twice the
 They seem to scale at the same rate.
 -/
 
-#exit
-
 run_cmd 
-let arr := (mk_array 80000 (1 : float)).map (λ _, float.random) in
-do return $ quicksort (λ a b, float.lt a b) $ arr,
-   return $ list.qsort (λ a b, float.lt a b) arr.to_list
+--let arr := (mk_array 80 (1 : float)).map (λ _, float.random) in
+do return $ quicksort (λ a b, float.lt a b) $ (mk_array 8000 (1 : float)).map (λ _, float.random)
+  -- return $ list.qsort (λ a b, float.lt a b) ((mk_array 8000 (1 : float)).map (λ _, float.random)).to_list
 
-
+#exit
 run_cmd let a := (mk_array 800 (1 : float)).map (λ _, float.random) -- .55
 in tactic.trace $ ((a.write' 10 50).read' 10) + (a.read' 1)
 
