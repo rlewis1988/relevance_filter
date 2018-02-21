@@ -13,6 +13,14 @@ run_cmd
 do return $ quicksort (λ a b, float.lt a b) $ (mk_array 8000 (1 : float)).map (λ _, float.random)
   -- return $ list.qsort (λ a b, float.lt a b) ((mk_array 8000 (1 : float)).map (λ _, float.random)).to_list
 
+run_cmd
+do return $ list.qsort (λ a b, float.lt a b) ((mk_array 8000 (1 : float)).map (λ _, float.random)).to_list
+
+run_cmd 
+--let arr := (mk_array 80 (1 : float)).map (λ _, float.random) in
+do return $ merge_sort $ (mk_array 8000 (1 : float)).map (λ _, float.random)
+ 
+
 #exit
 run_cmd let a := (mk_array 800 (1 : float)).map (λ _, float.random) -- .55
 in tactic.trace $ ((a.write' 10 50).read' 10) + (a.read' 1)
