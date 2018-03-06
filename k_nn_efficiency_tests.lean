@@ -81,12 +81,12 @@ meta structure builder_state :=
 (dcls : ℕ) -- number of declarations
 (names : array dcls name) -- array of declaration names
 (appears_in_type : array dcls β) -- the ith entry is the set of indices of names that appear in the type of declaration i
-(appears_in_value : array dcls β)
+/-(appears_in_value : array dcls β)
 (referenced_from_type : array dcls β) -- the ith entry is the set of indices of declarations whose types contain constant i
-(referenced_from_value : array dcls β)
+(referenced_from_value : array dcls β)-/
 
 meta def builder_state.format : builder_state → format
-| ⟨_, _, names, _, _, _, _⟩ := to_fmt names
+| ⟨_, _, names, _, /-_, _, _-/⟩ := to_fmt names
 
 meta instance builder_state.has_to_format : has_to_format builder_state := ⟨builder_state.format⟩
 
@@ -95,9 +95,12 @@ meta instance builder_state.has_to_format : has_to_format builder_state := ⟨bu
   dcls := 0,
   names := array.nil,
   appears_in_type := array.nil,
-  appears_in_value := array.nil,
+/-  appears_in_value := array.nil,
   referenced_from_type := array.nil,
-  referenced_from_value := array.nil }
+  referenced_from_value := array.nil -/}
+
+meta def mk_empty_builder_state' : unit → builder_state := λ _,
+⟨map_structure.mk_empty _ name ℕ, 0, array.nil, array.nil⟩
 
 @[reducible] meta def builder := state builder_state
 meta instance builder_monad : monad builder := by apply_instance
@@ -126,41 +129,79 @@ meta instance builder_monad : monad builder := by apply_instance
 end-/
 
 @[reducible, inline] meta def insert_name (nm : name) : builder ℕ 
-| p@⟨nl, n, nms, ait, aiv, rft, rfv⟩ :=
-let opt := map_structure.find ℕ nl nm in 
---if h : opt.is_some then 
- -- /-(option.get h, p)--/(option.get h, mk_empty_builder_state)
---else
+| ⟨nl, n, nms, ait/-, aiv, rft, rfv-/⟩ := 
+/-match map_structure.find ℕ nl nm with 
+  | some k := (k, mk_empty_builder_state)
+  | none :=-/
     --let bs' : builder_state :=
     (n, 
-⟨ map_structure.insert nl nm n,
+⟨ map_structure.mk_empty _ name ℕ,--nl,--map_structure.insert nl nm n,
         n+1,
         nms.push_back nm,
-        ait.push_back (set_structure.mk_empty _ ℕ),
+        ait.push_back (set_structure.mk_empty _ ℕ)/-,
         aiv.push_back (set_structure.mk_empty _ ℕ),
         rft.push_back (set_structure.mk_empty _ ℕ),
-        rfv.push_back (set_structure.mk_empty _ ℕ) ⟩)
+        rfv.push_back (set_structure.mk_empty _ ℕ)-/ ⟩)
+--end 
+set_option pp.all true
+#print insert_name
+
+end
+
+set_option profiler true
+set_option trace.array.update true 
+section
+parameters (β : Type) [has_add β] (α : Type) [has_zero α]
+
+structure mstr := 
+(a : β) (k : ℕ) (arr1 : array k ℕ) (arr2 : array k α)
+
+meta instance abc : has_to_format mstr := ⟨λ s, to_fmt s.k⟩-- ++ to_fmt s.arr1 ++ to_fmt s.arr2⟩
+
+@[reducible] def my_monad := state mstr
+
+meta instance ab : monad my_monad := by apply_instance
+
+/-def mupd : my_monad unit :=
+λ sk, ((), ⟨_, sk.arr1.push_back 1, sk.arr2.push_back 2⟩)-/
 
 
-/-@[reducible, inline] meta def insert_name (nm : name) : builder ℕ 
-| p@⟨nl, n, nms, ait, aiv, rft, rfv⟩ := 
-match map_structure.find ℕ nl nm with 
-  | some k := (k, p)--(k, mk_empty_builder_state)
-  | none :=
-    --let bs' : builder_state :=
-    (n, 
-⟨ map_structure.insert nl nm n,
-        n+1,
-        nms.push_back nm,
-        ait.push_back (set_structure.mk_empty _ ℕ),
-        aiv.push_back (set_structure.mk_empty _ ℕ),
-        rft.push_back (set_structure.mk_empty _ ℕ),
-        rfv.push_back (set_structure.mk_empty _ ℕ) ⟩)
-end-/ 
+@[reducible, inline] def mupd2 (t : ℕ) : my_monad ℕ
+| ⟨o, k, arr1, arr2⟩ := --match k+t with
+--| 0 := (t, ⟨o, k, arr1, arr2⟩)
+/-| nat.succ n := -/ (2, ⟨o+o, k+1, arr1.push_back t, arr2.push_back 0⟩)
+--end
+end
+#print mupd2
+@[inline] def empty_mstr : mstr ℕ ℕ := ⟨1, _, array.nil, array.nil⟩
+run_cmd trace $ (mupd2 ℕ ℕ 5 >> mupd2 ℕ ℕ 2) ⟨1, _, array.nil, array.nil⟩
+run_cmd trace $ mupd2 ℕ ℕ 5 (empty_mstr)
 
 
+run_cmd 
+-- let st := mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ)-/ in
+  trace $ (insert_name _ _ `hello >> insert_name _ _ `hello2)  
+            (mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ) 
+  --(trace $ insert_name _ _ `hello (mk_empty_builder_state' (rb_map name ℕ) (rb_set ℕ) ()))
 
-/-@[reducible, inline] meta def insert_name (nm : name) : builder ℕ 
+run_cmd 
+-- let st := mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ)-/ in
+  trace $ insert_name (rb_map name ℕ) (rb_set ℕ) `hello ⟨mk_rb_map, 0, array.nil, @array.nil (rb_set ℕ)⟩
+#print builder_state
+
+def pb1 {k} (a : array k ℕ × array k ℕ) : array (k+1) ℕ := a.1.push_back 1
+
+run_cmd 
+trace $ pb1 (array.nil, array.nil)
+
+
+run_cmd 
+ --let st := mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ) in
+  trace $ insert_name _ _ `hello (mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ))
+
+#exit
+
+meta def insert_name' (nm : name) : builder ℕ 
 | p@⟨nl, n, nms, ait, aiv, rft, rfv⟩ := 
   match map_structure.find ℕ nl nm with 
   | some k := (k, p)
@@ -174,38 +215,38 @@ end-/
        referenced_from_type := rft.push_back (set_structure.mk_empty _ ℕ),
        referenced_from_value := rfv.push_back (set_structure.mk_empty _ ℕ) } )--in
     --(n, bs')   
-  end-/
+  end
 
-@[reducible, inline] meta def set_appears_in_type (idx : ℕ) (cset : β) : builder unit
+meta def set_appears_in_type (idx : ℕ) (cset : β) : builder unit
 | p := ((), {p with appears_in_type := p.appears_in_type.write' idx cset})
 
-@[reducible, inline] meta def set_appears_in_value (idx : ℕ) (cset : β) : builder unit
+meta def set_appears_in_value (idx : ℕ) (cset : β) : builder unit
 | p := ((), {p with appears_in_value := p.appears_in_type.write' idx cset})
 
-@[reducible, inline] meta def update_ns_array {n} (nsa : array n β) (idx nval : ℕ) : array n β := 
+meta def update_ns_array {n} (nsa : array n β) (idx nval : ℕ) : array n β := 
 if h : idx < n then
  let idx' : fin n := fin.mk _ h in
  nsa.write idx' (set_structure.insert (nsa.read idx') nval)
 else nsa
 
-@[reducible, inline] meta def add_idx_to_referenced_from_type (old_idx new_idx : ℕ) : builder unit
+meta def add_idx_to_referenced_from_type (old_idx new_idx : ℕ) : builder unit
 | p := ((), {p with referenced_from_type := update_ns_array p.referenced_from_type old_idx new_idx})
 
-@[reducible, inline] meta def add_idx_to_referenced_from_value (old_idx new_idx : ℕ) : builder unit
+meta def add_idx_to_referenced_from_value (old_idx new_idx : ℕ) : builder unit
 | p := ((), {p with referenced_from_value := update_ns_array p.referenced_from_type old_idx new_idx})
 
 
-@[reducible, inline] meta def get_idx (nm : name) : builder (option ℕ) := 
+meta def get_idx (nm : name) : builder (option ℕ) := 
 λ p, (map_structure.find ℕ p.name_lookup nm, p)
 
-@[reducible, inline] meta def collect_consts (e : expr) : builder β :=
+meta def collect_consts (e : expr) : builder β :=
 e.mfold (set_structure.mk_empty _ ℕ) 
   (λ e' _ st, match e' with
   | expr.const nm _ := do n ← insert_name nm, return $ set_structure.insert st n
   | _ := return st
   end)
 
-@[reducible, inline] meta def process_dcl (dcl_name : name) (dcl_type dcl_value : expr) : builder unit :=
+meta def process_dcl (dcl_name : name) (dcl_type dcl_value : expr) : builder unit :=
 do idx ← insert_name dcl_name,
    tp_cnsts ← collect_consts dcl_type,
    set_appears_in_type idx tp_cnsts,
@@ -214,13 +255,13 @@ do idx ← insert_name dcl_name,
    set_structure.mfold' tp_cnsts (λ a, add_idx_to_referenced_from_type a idx),
    set_structure.mfold' val_cnsts (λ a, add_idx_to_referenced_from_value a idx)
 
-@[reducible, inline] meta def process_const_dcl (dcl_name : name) (dcl_type : expr) : builder unit :=
+meta def process_const_dcl (dcl_name : name) (dcl_type : expr) : builder unit :=
 do idx ← insert_name dcl_name,
    tp_cnsts ← collect_consts dcl_type,
    set_appears_in_type idx tp_cnsts,
    set_structure.mfold' tp_cnsts (λ a, add_idx_to_referenced_from_type a idx)
 
-@[reducible, inline] meta def process_env (env : environment) : builder unit :=
+meta def process_env (env : environment) : builder unit :=
 env.mfold () 
   (λ dcl _, match dcl with
    | declaration.defn nm _ tp vl _ tt := process_dcl nm tp vl
@@ -262,10 +303,10 @@ match nso with
 | none := do ns ← collect_consts_aux collect_consts e, update_cache e ns, return ns
 end-/
 
-/-
+/--
  builds the set of the names of all constants appearing in the expression e
 -/
-
+meta def g''' := 0
 /-meta def collect_consts (e : expr) : name_set :=
 e.fold mk_name_set 
   (λ e' _ l, match e' with
@@ -292,67 +333,6 @@ e.fold
 -/
 
 end 
-
-
-
-set_option profiler true
---set_option trace.array.update true
-
-section
-parameters (β : Type) [has_add β] (α : Type) [has_zero α]
-
-structure mstr := 
-(a : β) (k : ℕ) (arr1 : array k ℕ) (arr2 : array k α)
-
-meta instance abc : has_to_format mstr := ⟨λ s, to_fmt s.k⟩-- ++ to_fmt s.arr1 ++ to_fmt s.arr2⟩
-
-@[reducible] def my_monad := state mstr
-
-meta instance ab : monad my_monad := by apply_instance
-
-/-def mupd : my_monad unit :=
-λ sk, ((), ⟨_, sk.arr1.push_back 1, sk.arr2.push_back 2⟩)-/
-
-
-def mupd2 (t : ℕ) : my_monad ℕ
-| ⟨o, k, arr1, arr2⟩ := --match k+t with
---| 0 := (t, ⟨o, k, arr1, arr2⟩)
-/-| nat.succ n := -/ (2, ⟨o+o, k+1, arr1.push_back t, arr2.push_back 0⟩)
---end
-end
-#print mupd2
-run_cmd trace $ mupd2 ℕ ℕ 5 ⟨1, _, array.nil, array.nil⟩
-
-run_cmd 
--- let st := mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ)-/ in
-  trace $ (insert_name _ _ `hello >> insert_name _ _ `hello2)  
-           (mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ) 
-  --(trace $ insert_name _ _ `hello (mk_empty_builder_state' (rb_map name ℕ) (rb_set ℕ) ()))
-
-run_cmd 
--- let st := mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ)-/ in
-  trace $ insert_name (rb_map name ℕ) (rb_set ℕ) `hello ⟨mk_rb_map, 0, array.nil, @array.nil (rb_set ℕ)⟩
-#print builder_state
-
-def pb1 {k} (a : array k ℕ × array k ℕ) : array (k+1) ℕ := a.1.push_back 1
-
-run_cmd 
-trace $ pb1 (array.nil, array.nil)
-
-
-run_cmd 
- --let st := mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ) in
-  trace $ insert_name _ _ `hello (mk_empty_builder_state (rb_map name ℕ) (rb_set ℕ))
-
-
-run_cmd 
- do bs ← create_builder_structures (rb_map name ℕ) (rb_set ℕ),
-    trace $ bs.dcls 
-
-#exit
-
-
-
 namespace tests
 set_option profiler true
 set_option trace.array.update true 
