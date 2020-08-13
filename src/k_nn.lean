@@ -1,4 +1,4 @@
-import data.vector
+import data.vector data.real.basic
 import .sort .util -- name clash: see https://github.com/leanprover/lean/issues/1841
 
 open tactic native
