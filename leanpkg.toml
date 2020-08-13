@@ -1,7 +1,7 @@
 [package]
 name = "relevance_filter"
 version = "0.1"
-lean_version = "3.3.0"
+lean_version = "leanprover-community/lean:3.17.1"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover/mathlib", rev = "f705963c812680897bf4ddc5504f33dcf2e60fad"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib.git", rev = "f78a012d976ebf3f2a4694fa16cff1632ce0b57f"}

@@ -1,4 +1,9 @@
-import float sort data.list.sort
+import sort data.list.sort
+open native
+
+meta instance : inhabited float := ⟨0⟩
+
+-- meta constant float.random : float
 
 set_option profiler true
 --set_option trace.array.update true
